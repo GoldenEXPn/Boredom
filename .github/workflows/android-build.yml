@@ -19,48 +19,32 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
           cache: gradle
-
-      # Navigate to the correct directory
-      - name: Navigate to ScreenTimeDemo directory
-        run: cd ScreenTimeDemo
         
       - name: Make Gradle executable
         run: chmod +x ScreenTimeDemo/gradlew
         
-      # Decode the base64 encoded keystore and write it to a file
-      - name: Decode Keystore
-        run: |
-          echo "${{ secrets.SIGNING_KEY }}" > keystore_base64.txt
-          base64 -d keystore_base64.txt > key.jks
-        
-      # Move the keystore to the right location (if needed)
-      - name: Move Keystore to Project Directory
-        run: |
-          mv key.jks ScreenTimeDemo/
+      # Use action to sign the APK directly
+      - name: Build Debug APK (no signing required)
+        run: cd ScreenTimeDemo && ./gradlew assembleDebug
 
-      - name: Build with Gradle
-        run: cd ScreenTimeDemo && ./gradlew assembleRelease
-        env:
-          SIGNING_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          SIGNING_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
-
+      # Create a release with the debug APK (for initial testing)
       - name: Create Release
         id: create_release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            ScreenTimeDemo/app/build/outputs/apk/release/app-release.apk
+            ScreenTimeDemo/app/build/outputs/apk/debug/app-debug.apk
           generate_release_notes: true
           draft: false
-          prerelease: false
+          prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload APK as artifact (for manual workflow runs)
+      # Upload as artifact for manual runs
+      - name: Upload APK as artifact
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: app-release
-          path: ScreenTimeDemo/app/build/outputs/apk/release/app-release.apk
+          name: app-debug
+          path: ScreenTimeDemo/app/build/outputs/apk/debug/app-debug.apk
