@@ -1,10 +1,9 @@
 name: Android Build & Release
-
 on:
   push:
     tags:
-      - 'v*'  # This workflow will run when you push a tag that starts with 'v'
-  workflow_dispatch:  # Also allows manual triggering from GitHub UI
+      - 'v*'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -12,7 +11,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
+        
       - name: Set up JDK
         uses: actions/setup-java@v3
         with:
@@ -26,23 +25,29 @@ jobs:
       # Decode the base64 encoded keystore and write it to a file
       - name: Decode Keystore
         run: |
-          echo "${{ secrets.SIGNING_KEY }}" > keystore_base64.txt
-          base64 -d keystore_base64.txt > key.jks
+          echo "${{ secrets.SIGNING_KEY }}" | base64 --decode > ScreenTimeDemo/key.jks
         
-      # Move the keystore to the correct location
-      - name: Move Keystore to Project Directory
-        run: |
-          cp key.jks ScreenTimeDemo/
-      
-      # Try to build release APK with the keystore
+      # Build release APK with correct environment variables
       - name: Build Release APK
         id: release_build
         continue-on-error: true
         run: cd ScreenTimeDemo && ./gradlew assembleRelease
         env:
-          SIGNING_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY }}
-          SIGNING_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+      
+      # Debug output to help diagnose issues
+      - name: Debug Output
+        if: steps.release_build.outcome != 'success'
+        run: |
+          echo "Release build failed. Checking keystore file..."
+          ls -la ScreenTimeDemo/key.jks || echo "Keystore file not found!"
+          cd ScreenTimeDemo && ./gradlew --info assembleRelease
+        env:
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
       
       # Build debug APK as fallback if release build fails
       - name: Build Debug APK (Fallback)
@@ -52,7 +57,7 @@ jobs:
       # List output directory to verify generated files
       - name: List Output Directory
         run: find ScreenTimeDemo/app/build/outputs -type f -name "*.apk"
-
+        
       # Create a release with either release or debug APK depending on what was built
       - name: Create Release
         id: create_release
@@ -67,7 +72,7 @@ jobs:
           prerelease: ${{ steps.release_build.outcome != 'success' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+          
       # Upload release APK as artifact if available
       - name: Upload Release APK as artifact
         if: steps.release_build.outcome == 'success' && github.event_name == 'workflow_dispatch'
