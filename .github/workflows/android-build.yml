@@ -22,8 +22,19 @@ jobs:
         
       - name: Make Gradle executable
         run: chmod +x ScreenTimeDemo/gradlew
+        
+      # Decode the base64 encoded keystore and write it to a file
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.SIGNING_KEY }}" > keystore_base64.txt
+          base64 -d keystore_base64.txt > key.jks
+        
+      # Move the keystore to the correct location
+      - name: Move Keystore to Project Directory
+        run: |
+          cp key.jks ScreenTimeDemo/
       
-      # Try to build release APK if secrets are available
+      # Try to build release APK with the keystore
       - name: Build Release APK
         id: release_build
         continue-on-error: true
