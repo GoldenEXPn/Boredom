@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#CDCDCD">
+
+    <include layout="@layout/include_top" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="@drawable/bg_bottom"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="Screen time check:"
+            android:textColor="@color/text_black"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="40dp"
+            android:text="Time selection:"
+            android:textColor="@color/text_black" />
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:background="@drawable/bg_edit"
+            android:layout_marginStart="20dp"
+            android:gravity="center_vertical"
+            android:layout_marginTop="12dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <Spinner
+                android:id="@+id/spinner"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_edit"
+                android:entries="@array/week_options" />
+
+            <ImageView
+                android:src="@drawable/ic_arrow_down"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+
+
+        </LinearLayout>
+
+
+
+      <LinearLayout
+          android:id="@+id/llTitle"
+          android:layout_marginTop="30dp"
+          android:orientation="horizontal"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content">
+
+          <TextView
+              android:text="Last Week"
+              android:textColor="@color/text_black"
+              android:layout_width="0dp"
+              android:layout_weight="1"
+              android:gravity="center"
+              android:layout_height="wrap_content"/>
+
+          <TextView
+              android:text="This Week"
+              android:textColor="@color/text_black"
+              android:layout_width="0dp"
+              android:layout_weight="1"
+              android:gravity="center"
+              android:layout_height="wrap_content"/>
+
+      </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/pieChartContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:gravity="center"
+            android:orientation="horizontal" />
+
+        <LinearLayout
+            android:id="@+id/llLegend"
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <LinearLayout
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content">
+
+                <View
+                    android:background="#8879FF"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"/>
+
+                <TextView
+                    android:text="Entertainment"
+                    android:textSize="11sp"
+                    android:layout_marginStart="4dp"
+                    android:textColor="@color/text_black"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content">
+
+                <View
+                    android:background="#FF928A"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"/>
+
+                <TextView
+                    android:text="Work"
+                    android:textSize="11sp"
+                    android:layout_marginStart="4dp"
+                    android:textColor="@color/text_black"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content">
+
+                <View
+                    android:background="#3BC3DF"
+                    android:layout_width="10dp"
+                    android:layout_height="10dp"/>
+
+                <TextView
+                    android:text="Social"
+                    android:textSize="11sp"
+                    android:layout_marginStart="4dp"
+                    android:textColor="@color/text_black"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="40dp"/>
+
+    </LinearLayout>
+
+</RelativeLayout>

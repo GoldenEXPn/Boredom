@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Demo</string>
+    <string name="app_monitor">App\nMonitor</string>
+
+    <string-array name="week_options">
+        <item>This Week</item>
+        <item>Last Week</item>
+        <item>Comparison</item>
+    </string-array>
+</resources>
