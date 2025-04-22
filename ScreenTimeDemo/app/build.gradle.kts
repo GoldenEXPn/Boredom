@@ -38,19 +38,19 @@ android {
     }
 
     signingConfigs {
-        release {
-            // Use environment variables or local properties
-            storeFile file("Boredom/ScreenTimeDemo/key.jks")  // Adjust path if needed
-            storePassword System.getenv('SIGNING_STORE_PASSWORD') ?: getLocalProperty('STORE_PASSWORD')
-            keyAlias System.getenv('SIGNING_KEY_ALIAS') ?: getLocalProperty('KEY_ALIAS')
-            keyPassword System.getenv('SIGNING_KEY_PASSWORD') ?: getLocalProperty('KEY_PASSWORD')
+        create("release") {
+            storeFile = file("../key.jks")
+            storePassword = System.getenv("SIGNING_STORE_PASSWORD") ?: getLocalProperty("STORE_PASSWORD", "")
+            keyAlias = System.getenv("SIGNING_KEY_ALIAS") ?: getLocalProperty("KEY_ALIAS", "")
+            keyPassword = System.getenv("SIGNING_KEY_PASSWORD") ?: getLocalProperty("KEY_PASSWORD", "")
         }
     }
     
     buildTypes {
-        release {
-            // Make sure to reference your signing config
-            signingConfig signingConfigs.release
+        getByName("release") {
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
@@ -71,9 +71,13 @@ dependencies {
 
 }
 
-// Helper function to read local properties (add this at the end of the file)
-def getLocalProperty(String key) {
-    Properties properties = new Properties()
-    properties.load(project.rootProject.file('local.properties').newDataInputStream())
-    return properties.getProperty(key)
+// Helper function to read local properties
+fun getLocalProperty(key: String, defaultValue: String): String {
+    val properties = java.util.Properties()
+    val localProperties = file("../local.properties")
+    if (localProperties.exists()) {
+        properties.load(localProperties.inputStream())
+        return properties.getProperty(key, defaultValue)
+    }
+    return defaultValue
 }
