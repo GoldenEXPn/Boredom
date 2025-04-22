@@ -22,21 +22,26 @@ jobs:
 
       - name: Make Gradle executable
         run: chmod +x ./gradlew
+        
+      # Decode the base64 encoded keystore and write it to a file
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.SIGNING_KEY }}" > keystore_base64.txt
+          base64 -d keystore_base64.txt > key.jks
+        
+      # Move the keystore to the right location (if needed)
+      - name: Move Keystore to Project Directory
+        run: |
+          # Update this path if your key.jks was in a different location
+          mkdir -p ScreenTimeDemo
+          mv key.jks ScreenTimeDemo/
 
       - name: Build with Gradle
         run: ./gradlew assembleRelease
-
-      - name: Sign APK
-        uses: r0adkll/sign-android-release@v1
-        id: sign_app
-        with:
-          releaseDirectory: app/build/outputs/apk/release
-          signingKeyBase64: ${{ secrets.SIGNING_KEY }}
-          alias: ${{ secrets.KEY_ALIAS }}
-          keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
         env:
-          BUILD_TOOLS_VERSION: "34.0.0"
+          SIGNING_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
 
       - name: Create Release
         id: create_release
@@ -44,8 +49,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            ${{steps.sign_app.outputs.signedReleaseFile}}
-            app/build/outputs/apk/release/app-release-unsigned.apk
+            app/build/outputs/apk/release/app-release.apk
           generate_release_notes: true
           draft: false
           prerelease: false
@@ -57,4 +61,4 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: app-release
-          path: ${{steps.sign_app.outputs.signedReleaseFile}}
+          path: app/build/outputs/apk/release/app-release.apk
