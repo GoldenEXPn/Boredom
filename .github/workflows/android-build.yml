@@ -20,8 +20,12 @@ jobs:
           java-version: '17'
           cache: gradle
 
+      # Navigate to the correct directory
+      - name: Navigate to ScreenTimeDemo directory
+        run: cd ScreenTimeDemo
+        
       - name: Make Gradle executable
-        run: chmod +x ./gradlew
+        run: chmod +x ScreenTimeDemo/gradlew
         
       # Decode the base64 encoded keystore and write it to a file
       - name: Decode Keystore
@@ -32,12 +36,10 @@ jobs:
       # Move the keystore to the right location (if needed)
       - name: Move Keystore to Project Directory
         run: |
-          # Update this path if your key.jks was in a different location
-          mkdir -p ScreenTimeDemo
           mv key.jks ScreenTimeDemo/
 
       - name: Build with Gradle
-        run: ./gradlew assembleRelease
+        run: cd ScreenTimeDemo && ./gradlew assembleRelease
         env:
           SIGNING_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
@@ -49,7 +51,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            app/build/outputs/apk/release/app-release.apk
+            ScreenTimeDemo/app/build/outputs/apk/release/app-release.apk
           generate_release_notes: true
           draft: false
           prerelease: false
@@ -61,4 +63,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: app/build/outputs/apk/release/app-release.apk
+          path: ScreenTimeDemo/app/build/outputs/apk/release/app-release.apk
