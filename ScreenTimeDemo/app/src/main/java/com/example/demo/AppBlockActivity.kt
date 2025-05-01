@@ -1,5 +1,6 @@
 package com.example.demo
 
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
@@ -8,13 +9,11 @@ import android.util.Log
 import android.view.View
 import android.view.animation.AnimationUtils
 import android.widget.ImageView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.demo.databinding.ActivityAppBlockBinding
-
-// Testing purposes
-import androidx.core.content.ContextCompat
-
 
 class AppBlockActivity : AppCompatActivity() {
 
@@ -32,32 +31,49 @@ class AppBlockActivity : AppCompatActivity() {
     private var isEntertainmentExpanded = false
     private var isSocialExpanded = false
 
+    // Activity result launchers for app selection
+    private val selectEntertainmentAppsLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val selectedPackages = result.data?.getStringArrayExtra("selected_packages")
+            if (selectedPackages != null && selectedPackages.isNotEmpty()) {
+                // Add the selected packages to entertainment apps
+                addSelectedApps(selectedPackages, AppCategory.ENTERTAINMENT)
+            }
+        }
+    }
+
+    private val selectSocialAppsLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val selectedPackages = result.data?.getStringArrayExtra("selected_packages")
+            if (selectedPackages != null && selectedPackages.isNotEmpty()) {
+                // Add the selected packages to social apps
+                addSelectedApps(selectedPackages, AppCategory.SOCIAL)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAppBlockBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Set up back button
+        binding.ivBack.setOnClickListener {
+            finish()
+        }
+
         // Set up RecyclerViews
         setupRecyclerViews()
 
-        // Load apps
+        // Set up category headers for expansion
+        setupCategoryHeaders()
+
+        // Load installed apps
         loadInstalledApps()
-
-        // Set up entertainment expansion
-        binding.llEntertainmentHeader.setOnClickListener {
-            toggleEntertainmentSection()
-        }
-        binding.ivEntertainmentExpand.setOnClickListener {
-            toggleEntertainmentSection()
-        }
-
-        // Set up social expansion
-        binding.llSocialHeader.setOnClickListener {
-            toggleSocialSection()
-        }
-        binding.ivSocialExpand.setOnClickListener {
-            toggleSocialSection()
-        }
     }
 
     private fun setupRecyclerViews() {
@@ -78,105 +94,179 @@ class AppBlockActivity : AppCompatActivity() {
         binding.rvSocialApps.adapter = socialAdapter
     }
 
+    private fun setupCategoryHeaders() {
+        // Set up entertainment expansion
+        binding.llEntertainmentHeader.setOnClickListener {
+            toggleEntertainmentSection()
+        }
+        binding.ivEntertainmentExpand.setOnClickListener {
+            toggleEntertainmentSection()
+        }
+
+        // Set up social expansion
+        binding.llSocialHeader.setOnClickListener {
+            toggleSocialSection()
+        }
+        binding.ivSocialExpand.setOnClickListener {
+            toggleSocialSection()
+        }
+
+        // Set up "Add More Apps" buttons
+        binding.btnAddEntertainmentApps.setOnClickListener {
+            openAppSelector(AppCategory.ENTERTAINMENT)
+        }
+
+        binding.btnAddSocialApps.setOnClickListener {
+            openAppSelector(AppCategory.SOCIAL)
+        }
+    }
+
     private fun loadInstalledApps() {
-        val packageManager = packageManager
-        val intent = Intent(Intent.ACTION_MAIN, null)
-        intent.addCategory(Intent.CATEGORY_LAUNCHER)
-
-        val installedApps = packageManager.queryIntentActivities(intent, 0)
-        // Log the total number of apps found
-        Log.d("AppBlock", "Found ${installedApps.size} installed apps.")
-
         // Clear existing lists
         entertainmentApps.clear()
         socialApps.clear()
 
-        // Entertainment apps keywords
-        val entertainmentKeywords = listOf(
-            "game", "play", "music", "video", "tv", "movie", "entertainment",
-            "stream", "netflix", "hulu", "disney", "youtube", "spotify", "tiktok"
-        )
+        // Get all apps with launcher intent
+        val intent = Intent(Intent.ACTION_MAIN, null)
+        intent.addCategory(Intent.CATEGORY_LAUNCHER)
+        val resolveInfoList = packageManager.queryIntentActivities(intent, 0)
 
-        // Social apps keywords
-        val socialKeywords = listOf(
-            "social", "chat", "message", "facebook", "instagram", "twitter",
-            "snapchat", "whatsapp", "telegram", "wechat", "line", "discord",
-            "reddit", "linkedin", "pinterest", "dating"
-        )
+        Log.d("AppBlock", "Found ${resolveInfoList.size} installed apps")
 
-        // Process each installed app
-        for (app in installedApps) {
+        // Process each app and categorize using our database
+        for (app in resolveInfoList) {
             val packageName = app.activityInfo.packageName
-            val appInfo = packageManager.getApplicationInfo(packageName, 0)
-            val appName = packageManager.getApplicationLabel(appInfo).toString()
-            val appIcon = packageManager.getApplicationIcon(appInfo)
 
-            // Skip system apps
-            if (appInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0) {
+            try {
+                val appInfo = packageManager.getApplicationInfo(packageName, 0)
+
+                // Skip system apps
+                if (appInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0) {
+                    continue
+                }
+
+                val appName = packageManager.getApplicationLabel(appInfo).toString()
+                val appIcon = packageManager.getApplicationIcon(appInfo)
+
+                // Check the app's category using our database
+                when {
+                    AppCategoryDatabase.isInCategory(packageName, AppCategory.ENTERTAINMENT) -> {
+                        entertainmentApps.add(AppInfo(packageName, appName, appIcon, "ENTERTAINMENT"))
+                        Log.d("AppBlock", "Added $appName to entertainment apps")
+                    }
+                    AppCategoryDatabase.isInCategory(packageName, AppCategory.SOCIAL) -> {
+                        socialApps.add(AppInfo(packageName, appName, appIcon, "SOCIAL"))
+                        Log.d("AppBlock", "Added $appName to social apps")
+                    }
+                    AppCategoryDatabase.isInCategory(packageName, AppCategory.GAME) -> {
+                        // Categorize games as entertainment for blocking purposes
+                        entertainmentApps.add(AppInfo(packageName, appName, appIcon, "ENTERTAINMENT"))
+                        Log.d("AppBlock", "Added game $appName to entertainment apps")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("AppBlock", "Error processing app $packageName: ${e.message}")
                 continue
             }
-
-            // Determine category
-            val lowerCaseName = appName.lowercase()
-            val lowerCasePackage = packageName.lowercase()
-
-            when {
-                entertainmentKeywords.any { keyword ->
-                    lowerCaseName.contains(keyword) || lowerCasePackage.contains(keyword)
-                } -> {
-                    entertainmentApps.add(AppInfo(packageName, appName, appIcon, "ENTERTAINMENT"))
-                }
-                socialKeywords.any { keyword ->
-                    lowerCaseName.contains(keyword) || lowerCasePackage.contains(keyword)
-                } -> {
-                    socialApps.add(AppInfo(packageName, appName, appIcon, "SOCIAL"))
-                }
-            }
         }
 
-        // Load previously saved blocking status
+        // Also load user-categorized apps from preferences
+        loadUserCategorizedApps()
+
+        // Load blocking states from preferences
         loadBlockingStates()
 
-        // Log final result
-        Log.d("AppBlock", "Categorized ${entertainmentApps.size} entertainment apps")
-        Log.d("AppBlock", "Categorized ${socialApps.size} social apps")
+        // Add test data if lists are empty (useful for emulators with few apps)
+        addTestDataIfEmpty()
 
-        // Add test data if no apps were categorized
-        if (entertainmentApps.isEmpty()) {
-            // Get default icons - using standard Android system icons
-            val defaultIcon = ContextCompat.getDrawable(this, android.R.drawable.ic_media_play)
-
-            // Add sample entertainment apps
-            entertainmentApps.add(AppInfo("com.example.youtube", "YouTube", defaultIcon!!, "ENTERTAINMENT"))
-            entertainmentApps.add(AppInfo("com.example.netflix", "Netflix", defaultIcon, "ENTERTAINMENT"))
-            entertainmentApps.add(AppInfo("com.example.spotify", "Spotify", defaultIcon, "ENTERTAINMENT"))
-            entertainmentApps.add(AppInfo("com.example.youtube", "YouTube", defaultIcon!!, "ENTERTAINMENT"))
-            entertainmentApps.add(AppInfo("com.example.netflix", "Netflix", defaultIcon, "ENTERTAINMENT"))
-            entertainmentApps.add(AppInfo("com.example.spotify", "Spotify", defaultIcon, "ENTERTAINMENT"))
-
-            Log.d("AppBlock", "Added sample entertainment apps")
-        }
-
-        if (socialApps.isEmpty()) {
-            // Get default icons - using standard Android system icons
-            val defaultIcon = ContextCompat.getDrawable(this, android.R.drawable.ic_menu_share)
-
-            // Add sample social apps
-            socialApps.add(AppInfo("com.example.facebook", "Facebook", defaultIcon!!, "SOCIAL"))
-            socialApps.add(AppInfo("com.example.instagram", "Instagram", defaultIcon, "SOCIAL"))
-            socialApps.add(AppInfo("com.example.twitter", "Twitter", defaultIcon, "SOCIAL"))
-            socialApps.add(AppInfo("com.example.facebook", "Facebook", defaultIcon!!, "SOCIAL"))
-            socialApps.add(AppInfo("com.example.instagram", "Instagram", defaultIcon, "SOCIAL"))
-            socialApps.add(AppInfo("com.example.twitter", "Twitter", defaultIcon, "SOCIAL"))
-
-            Log.d("AppBlock", "Added sample social apps")
-        }
-
-        Log.d("AppBlock", "Final count - Entertainment: ${entertainmentApps.size}, Social: ${socialApps.size}")
+        // Sort apps alphabetically
+        entertainmentApps.sortBy { it.name }
+        socialApps.sortBy { it.name }
 
         // Update adapters
         entertainmentAdapter.notifyDataSetChanged()
         socialAdapter.notifyDataSetChanged()
+
+        Log.d("AppBlock", "Categorized ${entertainmentApps.size} entertainment apps")
+        Log.d("AppBlock", "Categorized ${socialApps.size} social apps")
+    }
+
+    private fun loadUserCategorizedApps() {
+        val prefs = getSharedPreferences("user_categorized_apps", MODE_PRIVATE)
+
+        // Load user-categorized entertainment apps
+        val userEntertainmentApps = prefs.getStringSet("entertainment_apps", setOf()) ?: setOf()
+        for (packageName in userEntertainmentApps) {
+            // Skip if already in list
+            if (entertainmentApps.any { it.packageName == packageName }) {
+                continue
+            }
+
+            try {
+                val appInfo = packageManager.getApplicationInfo(packageName, 0)
+                val appName = packageManager.getApplicationLabel(appInfo).toString()
+                val appIcon = packageManager.getApplicationIcon(appInfo)
+                entertainmentApps.add(AppInfo(packageName, appName, appIcon, "ENTERTAINMENT"))
+                Log.d("AppBlock", "Added user-categorized entertainment app: $appName")
+            } catch (e: Exception) {
+                // App might have been uninstalled
+                Log.e("AppBlock", "Error loading user entertainment app $packageName: ${e.message}")
+            }
+        }
+
+        // Load user-categorized social apps
+        val userSocialApps = prefs.getStringSet("social_apps", setOf()) ?: setOf()
+        for (packageName in userSocialApps) {
+            // Skip if already in list
+            if (socialApps.any { it.packageName == packageName }) {
+                continue
+            }
+
+            try {
+                val appInfo = packageManager.getApplicationInfo(packageName, 0)
+                val appName = packageManager.getApplicationLabel(appInfo).toString()
+                val appIcon = packageManager.getApplicationIcon(appInfo)
+                socialApps.add(AppInfo(packageName, appName, appIcon, "SOCIAL"))
+                Log.d("AppBlock", "Added user-categorized social app: $appName")
+            } catch (e: Exception) {
+                // App might have been uninstalled
+                Log.e("AppBlock", "Error loading user social app $packageName: ${e.message}")
+            }
+        }
+    }
+
+    private fun loadBlockingStates() {
+        val prefs = getSharedPreferences("app_blocking", MODE_PRIVATE)
+
+        // Load states for entertainment apps
+        for (app in entertainmentApps) {
+            app.isBlocked = prefs.getBoolean(app.packageName, false)
+        }
+
+        // Load states for social apps
+        for (app in socialApps) {
+            app.isBlocked = prefs.getBoolean(app.packageName, false)
+        }
+    }
+
+    private fun addTestDataIfEmpty() {
+        if (entertainmentApps.isEmpty()) {
+            // Add test entertainment apps
+            val defaultIcon = ContextCompat.getDrawable(this, android.R.drawable.ic_media_play)
+            entertainmentApps.add(AppInfo("com.example.youtube", "YouTube", defaultIcon!!, "ENTERTAINMENT"))
+            entertainmentApps.add(AppInfo("com.example.netflix", "Netflix", defaultIcon, "ENTERTAINMENT"))
+            entertainmentApps.add(AppInfo("com.example.spotify", "Spotify", defaultIcon, "ENTERTAINMENT"))
+            Log.d("AppBlock", "Added test entertainment apps")
+        }
+
+        if (socialApps.isEmpty()) {
+            // Add test social apps
+            val defaultIcon = ContextCompat.getDrawable(this, android.R.drawable.ic_menu_share)
+            socialApps.add(AppInfo("com.example.facebook", "Facebook", defaultIcon!!, "SOCIAL"))
+            socialApps.add(AppInfo("com.example.instagram", "Instagram", defaultIcon, "SOCIAL"))
+            socialApps.add(AppInfo("com.example.twitter", "Twitter", defaultIcon, "SOCIAL"))
+            Log.d("AppBlock", "Added test social apps")
+        }
     }
 
     private fun toggleEntertainmentSection() {
@@ -185,14 +275,10 @@ class AppBlockActivity : AppCompatActivity() {
         // Rotate the arrow icon
         rotateArrow(binding.ivEntertainmentExpand, isEntertainmentExpanded)
 
-        // Debug log
-        Log.d("AppBlock", "Entertainment section expanded: $isEntertainmentExpanded")
-        Log.d("AppBlock", "Entertainment app count: ${entertainmentApps.size}")
+        Log.d("AppBlock", "Entertainment expanded: $isEntertainmentExpanded")
 
         if (isEntertainmentExpanded) {
             binding.llEntertainmentContent.visibility = View.VISIBLE
-            // Debug visibility
-            Log.d("AppBlock", "Entertainment content should now be visible")
             val animation = AnimationUtils.loadAnimation(this, android.R.anim.fade_in)
             binding.llEntertainmentContent.startAnimation(animation)
         } else {
@@ -214,14 +300,10 @@ class AppBlockActivity : AppCompatActivity() {
         // Rotate the arrow icon
         rotateArrow(binding.ivSocialExpand, isSocialExpanded)
 
-        // Debug log
-        Log.d("AppBlock", "Social section expanded: $isSocialExpanded")
-        Log.d("AppBlock", "Social app count: ${socialApps.size}")
+        Log.d("AppBlock", "Social expanded: $isSocialExpanded")
 
         if (isSocialExpanded) {
             binding.llSocialContent.visibility = View.VISIBLE
-            // Debug visibility
-            Log.d("AppBlock", "Social content should now be visible")
             val animation = AnimationUtils.loadAnimation(this, android.R.anim.fade_in)
             binding.llSocialContent.startAnimation(animation)
         } else {
@@ -243,66 +325,91 @@ class AppBlockActivity : AppCompatActivity() {
     }
 
     private fun saveAppBlockingState(app: AppInfo, isBlocked: Boolean) {
-        // Save to SharedPreferences
         val prefs = getSharedPreferences("app_blocking", MODE_PRIVATE)
         prefs.edit().putBoolean(app.packageName, isBlocked).apply()
+        Log.d("AppBlock", "Saved blocking state for ${app.name}: $isBlocked")
     }
 
-    private fun loadBlockingStates() {
-        val prefs = getSharedPreferences("app_blocking", MODE_PRIVATE)
+    private fun openAppSelector(category: AppCategory) {
+        val intent = Intent(this, SelectAppsActivity::class.java).apply {
+            putExtra("category", category.name)
 
-        // Load states for entertainment apps
-        for (app in entertainmentApps) {
-            app.isBlocked = prefs.getBoolean(app.packageName, false)
+            // Pass the list of already selected packages
+            val selectedPackages = when (category) {
+                AppCategory.ENTERTAINMENT ->
+                    entertainmentApps.map { it.packageName }.toTypedArray()
+                AppCategory.SOCIAL ->
+                    socialApps.map { it.packageName }.toTypedArray()
+                else -> arrayOf()
+            }
+            putExtra("already_selected", selectedPackages)
         }
 
-        // Load states for social apps
-        for (app in socialApps) {
-            app.isBlocked = prefs.getBoolean(app.packageName, false)
+        when (category) {
+            AppCategory.ENTERTAINMENT -> selectEntertainmentAppsLauncher.launch(intent)
+            AppCategory.SOCIAL -> selectSocialAppsLauncher.launch(intent)
+            else -> { /* Do nothing */ }
         }
+    }
+
+    private fun addSelectedApps(selectedPackages: Array<String>, category: AppCategory) {
+        val prefs = getSharedPreferences("user_categorized_apps", MODE_PRIVATE)
+        val editor = prefs.edit()
+
+        when (category) {
+            AppCategory.ENTERTAINMENT -> {
+                // Save to preferences
+                val existingSet = prefs.getStringSet("entertainment_apps", setOf()) ?: setOf()
+                val newSet = existingSet.toMutableSet()
+                newSet.addAll(selectedPackages)
+                editor.putStringSet("entertainment_apps", newSet)
+
+                // Add to current list if not already present
+                for (packageName in selectedPackages) {
+                    if (entertainmentApps.none { it.packageName == packageName }) {
+                        try {
+                            val appInfo = packageManager.getApplicationInfo(packageName, 0)
+                            val appName = packageManager.getApplicationLabel(appInfo).toString()
+                            val appIcon = packageManager.getApplicationIcon(appInfo)
+                            entertainmentApps.add(AppInfo(packageName, appName, appIcon, "ENTERTAINMENT"))
+                        } catch (e: Exception) {
+                            Log.e("AppBlock", "Error adding entertainment app: ${e.message}")
+                        }
+                    }
+                }
+
+                // Resort and update
+                entertainmentApps.sortBy { it.name }
+                entertainmentAdapter.notifyDataSetChanged()
+            }
+            AppCategory.SOCIAL -> {
+                // Save to preferences
+                val existingSet = prefs.getStringSet("social_apps", setOf()) ?: setOf()
+                val newSet = existingSet.toMutableSet()
+                newSet.addAll(selectedPackages)
+                editor.putStringSet("social_apps", newSet)
+
+                // Add to current list if not already present
+                for (packageName in selectedPackages) {
+                    if (socialApps.none { it.packageName == packageName }) {
+                        try {
+                            val appInfo = packageManager.getApplicationInfo(packageName, 0)
+                            val appName = packageManager.getApplicationLabel(appInfo).toString()
+                            val appIcon = packageManager.getApplicationIcon(appInfo)
+                            socialApps.add(AppInfo(packageName, appName, appIcon, "SOCIAL"))
+                        } catch (e: Exception) {
+                            Log.e("AppBlock", "Error adding social app: ${e.message}")
+                        }
+                    }
+                }
+
+                // Resort and update
+                socialApps.sortBy { it.name }
+                socialAdapter.notifyDataSetChanged()
+            }
+            else -> { /* Do nothing */ }
+        }
+
+        editor.apply()
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

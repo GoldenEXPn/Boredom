@@ -1,19 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#CDCDCD">
+    android:fillViewport="true">
 
-    <include
-        android:id="@+id/top_layout"
-        layout="@layout/include_top" />
-
-    <ScrollView
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@id/top_layout"
-        android:fillViewport="true">
+        android:layout_height="wrap_content"
+        android:background="#CDCDCD">
 
+        <include
+            android:id="@+id/include_top"
+            layout="@layout/include_top" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -37,6 +35,15 @@
                     android:textColor="@color/text_black"
                     android:textStyle="bold" />
 
+                <ImageView
+                    android:id="@+id/iv_back"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    android:layout_centerVertical="true"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_return" />
+
             </RelativeLayout>
 
             <View
@@ -58,9 +65,10 @@
                     android:src="@mipmap/ic_ball" />
 
                 <LinearLayout
-                    android:layout_width="315dp"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="12dp"
+                    android:layout_weight="1"
                     android:orientation="vertical">
 
                     <TextView
@@ -77,13 +85,13 @@
                         android:text="Block entertainment category."
                         android:textColor="@color/text_gray"
                         android:textSize="13sp" />
+
                 </LinearLayout>
 
-                <!-- Expand Icon -->
                 <ImageView
                     android:id="@+id/iv_entertainment_expand"
                     android:layout_width="24dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="24dp"
                     android:layout_gravity="center_vertical"
                     android:src="@drawable/ic_arrow_down" />
 
@@ -103,7 +111,16 @@
                     android:id="@+id/rv_entertainment_apps"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:maxHeight="200dp" />
+                    android:nestedScrollingEnabled="false" />
+
+                <!-- Add Entertainment Apps Button -->
+                <Button
+                    android:id="@+id/btn_add_entertainment_apps"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Add More Apps"
+                    android:textSize="12sp" />
 
             </LinearLayout>
 
@@ -121,9 +138,10 @@
                     android:src="@mipmap/ic_at" />
 
                 <LinearLayout
-                    android:layout_width="315dp"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="12dp"
+                    android:layout_weight="1"
                     android:orientation="vertical">
 
                     <TextView
@@ -140,16 +158,18 @@
                         android:text="Block social category."
                         android:textColor="@color/text_gray"
                         android:textSize="13sp" />
+
                 </LinearLayout>
-                <!-- Expand Icon -->
+
                 <ImageView
                     android:id="@+id/iv_social_expand"
                     android:layout_width="24dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="24dp"
                     android:layout_gravity="center_vertical"
                     android:src="@drawable/ic_arrow_down" />
 
             </LinearLayout>
+
             <!-- Social Expandable Content -->
             <LinearLayout
                 android:id="@+id/ll_social_content"
@@ -157,7 +177,6 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="32dp"
                 android:layout_marginTop="8dp"
-                android:layout_marginBottom="100dp"
                 android:orientation="vertical"
                 android:visibility="gone">
 
@@ -165,10 +184,24 @@
                     android:id="@+id/rv_social_apps"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:maxHeight="200dp" />
+                    android:nestedScrollingEnabled="false" />
+
+                <!-- Add Social Apps Button -->
+                <Button
+                    android:id="@+id/btn_add_social_apps"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Add More Apps"
+                    android:textSize="12sp" />
 
             </LinearLayout>
-        </LinearLayout>
-    </ScrollView>
 
-</RelativeLayout>
+            <!-- Bottom spacing -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="60dp" />
+
+        </LinearLayout>
+    </RelativeLayout>
+</ScrollView>

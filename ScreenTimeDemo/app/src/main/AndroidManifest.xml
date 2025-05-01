@@ -30,6 +30,7 @@
                 android:value=".MainActivity" />
         </activity>
         <activity android:name=".AppBlockActivity"/>
+        <activity android:name=".SelectAppsActivity"/>
         <activity android:name=".ScreenTimeGoalActivity"/>
         <activity android:name=".ScreenTimeGoalPieActivity"/>
     </application>
